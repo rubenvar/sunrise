@@ -1,0 +1,50 @@
+---
+import { Temporal } from "temporal-polyfill";
+
+export interface Props {
+  seconds: number;
+}
+
+interface Times {
+  results: {
+    sunrise: string;
+    sunset: string;
+    solar_noon: string;
+    day_length: number;
+    civil_twilight_begin: string;
+    civil_twilight_end: string;
+    nautical_twilight_begin: string;
+    nautical_twilight_end: string;
+    astronomical_twilight_begin: string;
+    astronomical_twilight_end: string;
+  };
+  status: string;
+}
+
+async function getTimes(): Promise<Times> {
+  return fetch(
+    `https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400&formatted=0`
+  ).then((res) => res.json());
+}
+
+const { results } = await getTimes();
+
+// https://tc39.es/proposal-temporal/docs/cookbook.html
+const sunset = Temporal.PlainDateTime.from(results.sunset);
+const now = Temporal.Now.plainDateTimeISO();
+const diff = now.until(sunset).toLocaleString();
+---
+
+<p class="big">{results.day_length}</p>
+<p>{diff}</p>
+<p>{results.sunrise}</p>
+<p>{results.sunset}</p>
+
+<style lang="scss">
+  p {
+    text-align: center;
+    &.big {
+      font-size: 124px;
+    }
+  }
+</style>
