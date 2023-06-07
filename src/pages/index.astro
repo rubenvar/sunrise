@@ -1,17 +1,61 @@
 ---
+import { Temporal } from "temporal-polyfill";
 import Layout from "../layouts/Layout.astro";
 import Minutes from "../components/Minutes.astro";
 import Day from "../components/Day.astro";
 
-const seconds = 65;
+interface Times {
+	results: {
+		sunrise: string;
+		sunset: string;
+		solar_noon: string;
+		day_length: number;
+		civil_twilight_begin: string;
+		civil_twilight_end: string;
+		nautical_twilight_begin: string;
+		nautical_twilight_end: string;
+		astronomical_twilight_begin: string;
+		astronomical_twilight_end: string;
+	};
+	status: string;
+}
+
+async function getTimes(): Promise<Times> {
+	const lat = "42.841160";
+	const lng = "-2.660870";
+
+	return fetch(
+		`https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&formatted=0`
+	).then((res) => res.json());
+}
+
+const { results } = await getTimes();
+
+// https://tc39.es/proposal-temporal/docs/cookbook.html
+
+const localSunrise = Temporal.Instant.from(results.sunrise).toZonedDateTimeISO(
+	"Europe/Madrid"
+);
+const localSunset = Temporal.Instant.from(results.sunset).toZonedDateTimeISO(
+	"Europe/Madrid"
+);
+const now = Temporal.Now.zonedDateTimeISO();
+const timeLeft = now.until(localSunset);
 ---
 
 <Layout title="Welcome to Astro.">
 	<main>
 		<h1 class="text-gradient">Minutes of light remaining:</h1>
-		<Minutes {seconds} />
-		<Day />
+		<Minutes {timeLeft} />
+		<Day
+			today={now.toPlainDate()}
+			sunrise={localSunrise.toPlainTime()}
+			sunset={localSunset.toPlainTime()}
+		/>
 	</main>
+	<footer>
+		<p><a href="https://rubenvara.io">By RV</a>.</p>
+	</footer>
 </Layout>
 
 <style lang="scss">
@@ -37,5 +81,10 @@ const seconds = 65;
 		grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
 		gap: 1rem;
 		padding: 0;
+	}
+	footer {
+		p {
+			text-align: center;
+		}
 	}
 </style>
